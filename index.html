@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ember & Salt — Fine Dining</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #f5efe6;
+      --warm-white: #faf7f2;
+      --charcoal: #1a1714;
+      --deep-brown: #2c1f14;
+      --amber: #c8762a;
+      --gold: #d4a843;
+      --rust: #8b3a1e;
+      --muted: #7a6e64;
+      --light-border: rgba(200,118,42,0.2);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--charcoal);
+      color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* Custom cursor */
+    .cursor {
+      width: 10px; height: 10px;
+      background: var(--amber);
+      border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9999;
+      transform: translate(-50%,-50%);
+      transition: transform 0.1s ease, width 0.3s, height 0.3s, background 0.3s;
+      mix-blend-mode: difference;
+    }
+    .cursor-ring {
+      width: 36px; height: 36px;
+      border: 1px solid var(--amber);
+      border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9998;
+      transform: translate(-50%,-50%);
+      transition: transform 0.12s ease, width 0.3s, height 0.3s, opacity 0.3s;
+      opacity: 0.6;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 28px 60px;
+      background: linear-gradient(to bottom, rgba(26,23,20,0.95), transparent);
+      backdrop-filter: blur(2px);
+    }
+    .nav-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 0.18em;
+      color: var(--gold);
+    }
+    .nav-logo span { color: var(--cream); }
+    .nav-links { display: flex; gap: 40px; list-style: none; }
+    .nav-links a {
+      color: var(--cream);
+      text-decoration: none;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      transition: opacity 0.2s, color 0.2s;
+    }
+    .nav-links a:hover { opacity: 1; color: var(--gold); }
+    .nav-reserve {
+      background: var(--amber);
+      color: var(--charcoal) !important;
+      padding: 10px 22px !important;
+      opacity: 1 !important;
+      font-weight: 500 !important;
+      transition: background 0.2s !important;
+    }
+    .nav-reserve:hover { background: var(--gold) !important; }
+
+    /* HERO */
+    .hero {
+      height: 100vh;
+      position: relative;
+      display: flex; align-items: center;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 70% 40%, rgba(200,118,42,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 20% 80%, rgba(139,58,30,0.15) 0%, transparent 55%),
+        linear-gradient(135deg, #0e0b09 0%, #1a1714 40%, #2c1f14 100%);
+    }
+    .hero-grain {
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.5;
+    }
+    .hero-content {
+      position: relative; z-index: 2;
+      padding: 0 60px;
+      max-width: 900px;
+    }
+    .hero-eyebrow {
+      font-size: 0.72rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 24px;
+      opacity: 0;
+      animation: fadeUp 0.9s 0.3s forwards;
+    }
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(4rem, 10vw, 9rem);
+      font-weight: 300;
+      line-height: 0.9;
+      color: var(--cream);
+      opacity: 0;
+      animation: fadeUp 1s 0.5s forwards;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--gold);
+    }
+    .hero-sub {
+      margin-top: 32px;
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 420px;
+      line-height: 1.7;
+      opacity: 0;
+      animation: fadeUp 0.9s 0.8s forwards;
+    }
+    .hero-cta {
+      margin-top: 48px;
+      display: flex; gap: 20px; align-items: center;
+      opacity: 0;
+      animation: fadeUp 0.9s 1s forwards;
+    }
+    .btn-primary {
+      display: inline-block;
+      background: var(--amber);
+      color: var(--charcoal);
+      padding: 15px 38px;
+      font-size: 0.78rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.25s, transform 0.2s;
+    }
+    .btn-primary:hover { background: var(--gold); transform: translateY(-2px); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 10px;
+      color: var(--cream);
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      text-decoration: none;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .btn-ghost:hover { opacity: 1; }
+    .btn-ghost::after {
+      content: '→';
+      transition: transform 0.2s;
+    }
+    .btn-ghost:hover::after { transform: translateX(4px); }
+
+    .hero-scroll {
+      position: absolute; bottom: 48px; left: 60px;
+      display: flex; align-items: center; gap: 16px;
+      font-size: 0.68rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0; animation: fadeUp 0.9s 1.3s forwards;
+    }
+    .scroll-line {
+      width: 60px; height: 1px;
+      background: linear-gradient(to right, var(--amber), transparent);
+      animation: lineGrow 2s 1.5s ease infinite;
+    }
+
+    .hero-visual {
+      position: absolute; right: -60px; top: 50%;
+      transform: translateY(-50%);
+      width: 520px; height: 580px;
+      border-radius: 260px 260px 0 0;
+      overflow: hidden;
+      opacity: 0; animation: fadeIn 1.2s 0.6s forwards;
+    }
+    .hero-visual img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      filter: saturate(0.8) brightness(0.85);
+    }
+    .hero-visual-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to left, transparent 60%, var(--charcoal) 100%);
+    }
+
+    /* SECTIONS */
+    section { padding: 120px 60px; }
+
+    /* ABOUT */
+    .about {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 100px; align-items: center;
+      border-top: 1px solid var(--light-border);
+    }
+    .section-label {
+      font-size: 0.68rem; letter-spacing: 0.35em; text-transform: uppercase;
+      color: var(--amber); margin-bottom: 20px;
+    }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.5rem, 4vw, 3.8rem);
+      font-weight: 300;
+      line-height: 1.1;
+      margin-bottom: 28px;
+    }
+    .section-title em { font-style: italic; color: var(--gold); }
+    .section-body { color: var(--muted); line-height: 1.8; font-size: 0.95rem; }
+    .section-body p + p { margin-top: 16px; }
+
+    .about-stats {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 30px; margin-top: 50px;
+    }
+    .stat {
+      border-left: 2px solid var(--amber);
+      padding-left: 20px;
+    }
+    .stat-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem; color: var(--gold);
+      letter-spacing: 0.05em;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .about-image {
+      position: relative; height: 560px;
+    }
+    .about-img-main {
+      width: 75%; height: 80%;
+      object-fit: cover;
+      position: absolute; bottom: 0; right: 0;
+      filter: saturate(0.75);
+    }
+    .about-img-accent {
+      width: 52%; height: 52%;
+      object-fit: cover;
+      position: absolute; top: 0; left: 0;
+      border: 6px solid var(--charcoal);
+      filter: saturate(0.65);
+    }
+    .about-badge {
+      position: absolute; bottom: 40px; left: -20px;
+      background: var(--amber);
+      color: var(--charcoal);
+      padding: 16px 22px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+    }
+
+    /* MENU */
+    .menu-section { background: var(--deep-brown); }
+    .menu-header { text-align: center; margin-bottom: 70px; }
+    .menu-tabs {
+      display: flex; justify-content: center; gap: 0;
+      margin-top: 40px; border-bottom: 1px solid var(--light-border);
+    }
+    .tab {
+      padding: 14px 32px;
+      font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      margin-bottom: -1px;
+    }
+    .tab:hover { color: var(--cream); }
+    .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+    .menu-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 2px; margin-top: 2px;
+    }
+    .menu-item {
+      background: rgba(255,255,255,0.02);
+      padding: 36px 32px;
+      border: 1px solid transparent;
+      transition: border-color 0.25s, background 0.25s, transform 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .menu-item::before {
+      content: '';
+      position: absolute; top: 0; left: 0;
+      width: 3px; height: 0;
+      background: var(--amber);
+      transition: height 0.3s;
+    }
+    .menu-item:hover::before { height: 100%; }
+    .menu-item:hover {
+      border-color: var(--light-border);
+      background: rgba(200,118,42,0.05);
+      transform: translateY(-3px);
+    }
+    .menu-item-tag {
+      font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--amber); margin-bottom: 12px;
+    }
+    .menu-item-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.5rem; font-weight: 400;
+      color: var(--cream); margin-bottom: 10px;
+    }
+    .menu-item-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .menu-item-price {
+      margin-top: 20px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem; letter-spacing: 0.1em;
+      color: var(--gold);
+    }
+
+    /* EXPERIENCE */
+    .experience { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+    .exp-list { margin-top: 40px; display: flex; flex-direction: column; gap: 0; }
+    .exp-item {
+      display: flex; gap: 24px; align-items: flex-start;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--light-border);
+    }
+    .exp-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem; color: rgba(200,118,42,0.3);
+      min-width: 44px; line-height: 1;
+      transition: color 0.2s;
+    }
+    .exp-item:hover .exp-num { color: var(--amber); }
+    .exp-title { font-family: 'Cormorant Garamond', serif; font-size: 1.25rem; margin-bottom: 8px; }
+    .exp-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+    .exp-visual {
+      display: grid; grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 8px; height: 520px;
+    }
+    .exp-img {
+      overflow: hidden;
+    }
+    .exp-img img { width: 100%; height: 100%; object-fit: cover; filter: saturate(0.7); transition: transform 0.5s, filter 0.4s; }
+    .exp-img:hover img { transform: scale(1.05); filter: saturate(1); }
+    .exp-img:first-child { grid-row: span 2; }
+
+    /* RESERVATION */
+    .reservation {
+      text-align: center;
+      background:
+        radial-gradient(ellipse at center, rgba(200,118,42,0.08) 0%, transparent 65%),
+        var(--charcoal);
+    }
+    .reservation .section-title { margin-bottom: 12px; }
+    .res-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 56px; }
+    .res-form {
+      display: flex; gap: 0;
+      max-width: 720px; margin: 0 auto;
+      border: 1px solid var(--light-border);
+    }
+    .res-form input, .res-form select {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--light-border);
+      padding: 18px 22px;
+      color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      outline: none;
+    }
+    .res-form input::placeholder { color: var(--muted); }
+    .res-form select option { background: var(--charcoal); }
+    .res-form button {
+      background: var(--amber);
+      color: var(--charcoal);
+      border: none;
+      padding: 18px 36px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .res-form button:hover { background: var(--gold); }
+
+    /* FOOTER */
+    footer {
+      background: #0e0b09;
+      padding: 60px 60px 40px;
+      border-top: 1px solid var(--light-border);
+    }
+    .footer-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 60px; margin-bottom: 60px;
+    }
+    .footer-brand { }
+    .footer-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem; letter-spacing: 0.18em;
+      color: var(--gold); margin-bottom: 16px;
+    }
+    .footer-tagline { color: var(--muted); font-size: 0.85rem; line-height: 1.7; }
+    .footer-col-title {
+      font-size: 0.68rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--amber); margin-bottom: 20px;
+    }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--cream); }
+    .footer-bottom {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.05);
+      color: var(--muted); font-size: 0.75rem;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    @keyframes lineGrow {
+      0%,100% { opacity: 0.3; } 50% { opacity: 1; }
+    }
+
+    /* Scroll reveal */
+    .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease, transform 0.8s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* Responsive */
+    @media(max-width: 1024px) {
+      nav { padding: 24px 32px; }
+      .hero-content { padding: 0 32px; }
+      .hero-visual { display: none; }
+      section { padding: 80px 32px; }
+      .about, .experience { grid-template-columns: 1fr; }
+      .menu-grid { grid-template-columns: 1fr 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media(max-width: 640px) {
+      .nav-links { display: none; }
+      .menu-grid { grid-template-columns: 1fr; }
+      .res-form { flex-direction: column; }
+      .res-form input, .res-form select, .res-form button { border-right: none; border-bottom: 1px solid var(--light-border); }
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">Ember<span>&</span>Salt</div>
+    <ul class="nav-links">
+      <li><a href="#menu">Menu</a></li>
+      <li><a href="#experience">Experience</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#reserve" class="nav-reserve">Reserve</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grain"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Est. 2019 · Mumbai, India</p>
+      <h1 class="hero-title">Fire.<br><em>Salt.</em><br>Soul.</h1>
+      <p class="hero-sub">Where ancient techniques meet the boldest ingredients. Every dish is a story told through smoke, salt, and slow fire.</p>
+      <div class="hero-cta">
+        <a href="#reserve" class="btn-primary">Book a Table</a>
+        <a href="#menu" class="btn-ghost">Explore Menu</a>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <div class="scroll-line"></div>
+      Scroll to Discover
+    </div>
+    <div class="hero-visual">
+      <img src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80" alt="Signature Dish"/>
+      <div class="hero-visual-overlay"></div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="about reveal" id="about">
+    <div>
+      <p class="section-label">Our Philosophy</p>
+      <h2 class="section-title">Cooked with<br><em>intention</em></h2>
+      <div class="section-body">
+        <p>We believe great food is never rushed. At Ember & Salt, every preparation begins the day before — slow brines, overnight rests, wood-smoked stocks.</p>
+        <p>Our chefs source from within 200km of Mumbai, working directly with farmers, fishermen, and foragers who share our obsession with quality.</p>
+      </div>
+      <div class="about-stats">
+        <div class="stat"><div class="stat-num">12</div><div class="stat-label">Tasting Courses</div></div>
+        <div class="stat"><div class="stat-num">47</div><div class="stat-label">Local Producers</div></div>
+        <div class="stat"><div class="stat-num">8</div><div class="stat-label">Years of Craft</div></div>
+        <div class="stat"><div class="stat-num">3</div><div class="stat-label">Awards Won</div></div>
+      </div>
+    </div>
+    <div class="about-image">
+      <img class="about-img-main" src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&q=80" alt="Fine dining table"/>
+      <img class="about-img-accent" src="https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=400&q=80" alt="Chef at work"/>
+      <div class="about-badge">Chef's Table<br>Available Nightly</div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section class="menu-section reveal" id="menu">
+    <div class="menu-header">
+      <p class="section-label">Seasonal Menu</p>
+      <h2 class="section-title">Crafted from<br><em>the harvest</em></h2>
+      <div class="menu-tabs">
+        <div class="tab active">Starters</div>
+        <div class="tab">Mains</div>
+        <div class="tab">Desserts</div>
+        <div class="tab">Drinks</div>
+      </div>
+    </div>
+    <div class="menu-grid" id="menuGrid">
+      <!-- Injected by JS -->
+    </div>
+  </section>
+
+  <!-- EXPERIENCE -->
+  <section class="experience reveal" id="experience">
+    <div>
+      <p class="section-label">The Ritual</p>
+      <h2 class="section-title">An evening<br><em>unlike others</em></h2>
+      <div class="exp-list">
+        <div class="exp-item">
+          <div class="exp-num">01</div>
+          <div>
+            <div class="exp-title">Arrival & Welcome Drink</div>
+            <div class="exp-desc">Begin with a hand-crafted cocktail inspired by the season's first harvest — an amuse-bouche for the palate.</div>
+          </div>
+        </div>
+        <div class="exp-item">
+          <div class="exp-num">02</div>
+          <div>
+            <div class="exp-title">The Chef's Introduction</div>
+            <div class="exp-desc">Every evening our head chef personally presents the night's journey — the ingredients, the inspiration, the story.</div>
+          </div>
+        </div>
+        <div class="exp-item">
+          <div class="exp-num">03</div>
+          <div>
+            <div class="exp-title">Twelve Courses, One Story</div>
+            <div class="exp-desc">Each course builds upon the last. Flavors arc from clean and bright to deep and smoldering — fire tamed by salt.</div>
+          </div>
+        </div>
+        <div class="exp-item">
+          <div class="exp-num">04</div>
+          <div>
+            <div class="exp-title">Curated Wine & Pairing</div>
+            <div class="exp-desc">Our sommelier curates pairings from small estates — natural wines, aged spirits, living vinegars.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="exp-visual">
+      <div class="exp-img"><img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80" alt="Plated dish"/></div>
+      <div class="exp-img"><img src="https://images.unsplash.com/photo-1551218808-94e220e084d2?w=600&q=80" alt="Restaurant interior"/></div>
+      <div class="exp-img"><img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=80" alt="Chef"/></div>
+    </div>
+  </section>
+
+  <!-- RESERVATION -->
+  <section class="reservation reveal" id="reserve">
+    <p class="section-label">Reservations</p>
+    <h2 class="section-title">Claim your<br><em>evening</em></h2>
+    <p class="res-sub">Seatings at 7:00 PM and 9:30 PM · Tuesday through Sunday</p>
+    <div class="res-form">
+      <input type="text" placeholder="Your Name"/>
+      <input type="date"/>
+      <select>
+        <option value="">Guests</option>
+        <option>1 Guest</option>
+        <option>2 Guests</option>
+        <option>3 Guests</option>
+        <option>4+ Guests</option>
+      </select>
+      <button>Reserve</button>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">Ember & Salt</div>
+        <p class="footer-tagline">Fine dining rooted in fire, locality, and the relentless pursuit of flavour. Mumbai's table for those who care deeply about what they eat.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Visit</div>
+        <ul class="footer-links">
+          <li><a href="#">12 Marine Drive</a></li>
+          <li><a href="#">Nariman Point</a></li>
+          <li><a href="#">Mumbai — 400020</a></li>
+          <li><a href="#">+91 22 6600 0000</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Navigate</div>
+        <ul class="footer-links">
+          <li><a href="#">Menu</a></li>
+          <li><a href="#">Chef's Table</a></li>
+          <li><a href="#">Private Events</a></li>
+          <li><a href="#">Gift Cards</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Follow</div>
+        <ul class="footer-links">
+          <li><a href="#">Instagram</a></li>
+          <li><a href="#">Newsletter</a></li>
+          <li><a href="#">Press</a></li>
+          <li><a href="#">Careers</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 Ember & Salt. All rights reserved.</span>
+      <span>Crafted with fire &amp; intention.</span>
+    </div>
+  </footer>
+
+  <script>
+    // Custom cursor
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+    function animCursor() {
+      rx += (mx - rx) * 0.15;
+      ry += (my - ry) * 0.15;
+      cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(animCursor);
+    }
+    animCursor();
+
+    // Menu data
+    const menus = {
+      starters: [
+        { tag: 'Starter', name: 'Smoked Kokum Rasam', desc: 'Cold-smoked kokum, turmeric oil, crisp lotus root, served with warmed khandvi', price: '₹ 980' },
+        { tag: 'Starter', name: 'Charred Mushroom Tart', desc: 'Wild gathered buna-shimeji, black garlic cream, fermented chilli, buckwheat crust', price: '₹ 1,200' },
+        { tag: 'Starter', name: 'Raw Kingfish Tiradito', desc: 'Coconut leche de tigre, green chilli, micro herbs, toasted coconut flakes', price: '₹ 1,450' },
+        { tag: 'Starter', name: 'Fire-Kissed Beet', desc: 'Wood-roasted beet, aged goat cheese, candied walnuts, tamarind gastrique', price: '₹ 850' },
+        { tag: 'Starter', name: 'Prawn Toast', desc: 'Malabar prawn mousse, brioche, curry leaf butter, lime roe', price: '₹ 1,100' },
+        { tag: 'Starter', name: 'Lamb Tartare', desc: 'Pasture lamb, black pepper, smoked egg yolk, mustard oil, crispy shallots', price: '₹ 1,650' },
+      ],
+      mains: [
+        { tag: 'Main Course', name: 'Slow-Roast Duck', desc: 'Malabar spiced duck breast, charred plum, pomelo, foie gras jus', price: '₹ 3,200' },
+        { tag: 'Main Course', name: 'Coastal Seabass', desc: 'Wild-caught seabass, saffron beurre blanc, clam broth, sea vegetables', price: '₹ 2,900' },
+        { tag: 'Main Course', name: 'Black Angus Tenderloin', desc: '200-day grain-fed, aged butter baste, truffle potato, pickled red onion', price: '₹ 4,200' },
+        { tag: 'Main Course', name: 'Forest Risotto', desc: 'Wild mushroom risotto, aged parmesan, truffle oil, crispy sage', price: '₹ 2,100' },
+        { tag: 'Main Course', name: 'Lamb Rack', desc: 'French-trimmed Rajasthani lamb, pomegranate molasses, smoked labneh, pistachio', price: '₹ 3,800' },
+        { tag: 'Main Course', name: 'Stuffed Banana Blossom', desc: 'Smoked jackfruit, cashew cream, Chettinad spices, roasted kale', price: '₹ 1,900' },
+      ],
+      desserts: [
+        { tag: 'Dessert', name: 'Valrhona Lava Cake', desc: 'Guanaja 70% chocolate, salted caramel, roasted makhana ice cream', price: '₹ 950' },
+        { tag: 'Dessert', name: 'Mango Tatin', desc: 'Alphonso mango, vanilla bean, cardamom caramel, cream fraîche', price: '₹ 880' },
+        { tag: 'Dessert', name: 'Saffron Panna Cotta', desc: 'Kashmiri saffron, pistachio brittle, rose gel, gold leaf', price: '₹ 1,050' },
+        { tag: 'Dessert', name: 'Smoked Coconut Mousse', desc: 'Cold-smoked coconut, dark rum gel, toasted lime, charred pineapple', price: '₹ 900' },
+        { tag: 'Dessert', name: 'Gulab Crème Brûlée', desc: 'Rose water custard, saffron sugar crust, dried raspberry', price: '₹ 820' },
+        { tag: 'Dessert', name: 'Cheese Trolley', desc: 'Selection of 5 artisanal cheeses, house chutney, seed crackers', price: '₹ 1,400' },
+      ],
+      drinks: [
+        { tag: 'Cocktail', name: 'Smoke & Salt Old Fashioned', desc: 'Aged Indian single malt, activated charcoal bitters, orange, smoked rosemary', price: '₹ 1,200' },
+        { tag: 'Mocktail', name: 'Kokum Fizz', desc: 'Cold-pressed kokum, fermented honey, cardamom, sparkling water', price: '₹ 650' },
+        { tag: 'Wine', name: "Sula Rasa Shiraz '22", desc: "Nashik valley Shiraz, notes of dark plum, pepper, and vanilla oak", price: '₹ 1,800' },
+        { tag: 'Cocktail', name: 'Tamarind Negroni', desc: 'Gin, sweet vermouth, campari, aged tamarind reduction, citrus zest', price: '₹ 1,100' },
+        { tag: 'Beer', name: 'Bira 91 White', desc: 'Craft wheat beer, coriander, orange peel, smooth and citrusy', price: '₹ 480' },
+        { tag: 'Non-Alc', name: 'Forest Shrub Soda', desc: 'Wild herb shrub, fresh lime, ginger beer, charred rosemary', price: '₹ 580' },
+      ]
+    };
+
+    function renderMenu(key) {
+      const grid = document.getElementById('menuGrid');
+      grid.innerHTML = menus[key].map(item => `
+        <div class="menu-item">
+          <div class="menu-item-tag">${item.tag}</div>
+          <div class="menu-item-name">${item.name}</div>
+          <div class="menu-item-desc">${item.desc}</div>
+          <div class="menu-item-price">${item.price}</div>
+        </div>
+      `).join('');
+    }
+    renderMenu('starters');
+
+    document.querySelectorAll('.tab').forEach((tab, i) => {
+      const keys = ['starters','mains','desserts','drinks'];
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderMenu(keys[i]);
+      });
+    });
+
+    // Scroll reveal
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    reveals.forEach(r => observer.observe(r));
+  </script>
+</body>
+</html>
